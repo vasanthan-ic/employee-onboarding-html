@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HR Dashboard | InheritCloud</title>
+  <link rel="icon" href="../assets/img/logo.ico" />
+  <link rel="stylesheet" href="../assets/css/base.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+
+  <!-- Page-scoped styles: input normalization + records cards -->
+  <style>
+    /* Helpers */
+    .grid { display: grid; gap: 12px; }
+    .page-wrap { padding: 32px; }
+
+    /* Form styling */
+    .form-field { margin-bottom: 14px; }
+    .form-field label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #475569;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="search"],
+    input:not([type]),
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px 12px;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+    input::placeholder { color: #94a3b8; }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--brand-600, #005b96);
+      box-shadow: var(--focus, 0 0 0 3px rgba(0,91,150,0.2));
+      outline: none;
+    }
+
+    /* Two-column row for Update Status */
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px) {
+      .row-2 { grid-template-columns: 1fr; }
+    }
+
+    /* Records list styles */
+    .records {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .record-card {
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px;
+      background: #fff;
+      padding: 14px;
+    }
+    .record-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .record-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin: 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .badge.INITIALIZED { color: #92400e; background: #fef3c7; border-color: #fde68a; }
+    .badge.ACCEPTED { color: #065f46; background: #d1fae5; border-color: #a7f3d0; }
+    .badge.REJECTED { color: #991b1b; background: #fee2e2; border-color: #fecaca; }
+
+    .record-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+    }
+    .field {
+      font-size: 14px;
+      color: #334155;
+    }
+    .field b {
+      color: #0f172a;
+      margin-right: 6px;
+    }
+
+    .files {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .files-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin: 0 0 6px;
+      color: #0f172a;
+    }
+    .file-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .file-chip {
+      font-size: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: #f8fafc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-chip a {
+      color: #005b96;
+      text-decoration: none;
+    }
+    .file-chip a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .record-grid { grid-template-columns: 1fr; }
+      .file-list { grid-template-columns: 1fr 1fr; }
+    }
+
+  </style>
+</head>
+<body>
+  <main class="container page-wrap">
+    <header style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <img src="../assets/img/logo.jpeg" alt="InheritCloud" class="brand-icon" />
+      <h1 style="margin:0;">HR Dashboard</h1>
+    </header>
+
+    <!-- Create Onboarding Record -->
+    <section class="card" style="padding:20px; margin:16px 0;">
+      <h2 style="margin-top:0;">Create Onboarding Record</h2>
+      <form id="createForm" class="grid" novalidate>
+        <div class="form-field">
+          <label for="firstName">First name</label>
+          <input id="firstName" type="text" placeholder="First name" required />
+        </div>
+        <div class="form-field">
+          <label for="lastName">Last name</label>
+          <input id="lastName" type="text" placeholder="Last name" required />
+        </div>
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="name@company.com" required />
+        </div>
+        <button class="btn btn-primary" type="submit">Create</button>
+      </form>
+      <div id="createMsg" class="alert" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- All Onboard Records -->
+    <section class="card" style="padding:20px; margin:16px 0;">
+      <h2 style="margin-top:0;">All Onboard Records</h2>
+      <button id="refreshBtn" class="btn">Refresh</button>
+      <div id="allRecords" style="margin-top:12px;"></div>
+    </section>
+
+    <!-- Update Status -->
+    <section class="card" style="padding:20px; margin:16px 0;">
+      <h2 style="margin-top:0;">Update Status by ID</h2>
+      <div class="row-2">
+        <div class="form-field">
+          <label for="updId">Onboarding ID</label>
+          <input id="updId" type="text" placeholder="e.g., vasanthan163649" />
+        </div>
+        <div class="form-field">
+          <label for="updStatus">Status</label>
+          <input id="updStatus" type="text" placeholder="e.g., ACCEPTED" />
+        </div>
+      </div>
+      <button id="updBtn" class="btn btn-primary">Update</button>
+      <div id="updMsg" class="alert" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    // Auth guard
+    import { getAuthToken } from "../assets/js/api.js";
+    if (!getAuthToken("HR")) {
+      window.location.replace("login.html");
+    }
+
+    // Page logic
+    import { api } from "../assets/js/api.js";
+
+    const createForm = document.getElementById("createForm");
+    const createMsg = document.getElementById("createMsg");
+    const allRecordsEl = document.getElementById("allRecords");
+    const updMsg = document.getElementById("updMsg");
+
+    createForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        firstName: document.getElementById("firstName").value.trim(),
+        lastName: document.getElementById("lastName").value.trim(),
+        email: document.getElementById("email").value.trim(),
+      };
+      try {
+        await api.hrCreateOnboard(payload);
+        createMsg.textContent = "Created successfully";
+        createMsg.className = "alert alert--success";
+      } catch (err) {
+        createMsg.textContent = `Error: ${err.message}`;
+        createMsg.className = "alert alert--error";
+      }
+    });
+
+    function renderRecords(records = []) {
+      if (!Array.isArray(records) || records.length === 0) {
+        allRecordsEl.innerHTML = "<p>No records found.</p>";
+        return;
+      }
+
+      const container = document.createElement("div");
+      container.className = "records";
+
+      for (const r of records) {
+        const card = document.createElement("div");
+        card.className = "record-card";
+
+        const head = document.createElement("div");
+        head.className = "record-head";
+
+        const title = document.createElement("h3");
+        title.className = "record-title";
+        title.textContent = `${r.firstName || ""} ${r.lastName || ""}`.trim() || r.onboardingId;
+
+        const badge = document.createElement("span");
+        const status = String(r.status || "INITIALIZED").toUpperCase();
+        badge.className = `badge ${status}`;
+        badge.textContent = status;
+
+        head.appendChild(title);
+        head.appendChild(badge);
+
+        const grid = document.createElement("div");
+        grid.className = "record-grid";
+        const fields = [
+          ["Onboarding ID", r.onboardingId],
+          ["Email", r.email || r.mail],
+          ["Phone", r.phone],
+          ["DOB", r.dateOfBirth],
+        ];
+        for (const [label, value] of fields) {
+          if (!value) continue;
+          const p = document.createElement("p");
+          p.className = "field";
+          p.innerHTML = `<b>${label}:</b> ${value}`;
+          grid.appendChild(p);
+        }
+
+        card.appendChild(head);
+        card.appendChild(grid);
+
+        if (Array.isArray(r.files) && r.files.length) {
+          const filesWrap = document.createElement("div");
+          filesWrap.className = "files";
+
+          const filesTitle = document.createElement("p");
+          filesTitle.className = "files-title";
+          filesTitle.textContent = "Files";
+
+          const list = document.createElement("div");
+          list.className = "file-list";
+
+          for (const f of r.files) {
+            const chip = document.createElement("div");
+            chip.className = "file-chip";
+            const label = (f.fileType || "").toString();
+            const url = (f.fileUrl || "").toString();
+
+            if (url) {
+              const a = document.createElement("a");
+              a.href = url;
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              a.textContent = label || "document";
+              chip.appendChild(a);
+            } else {
+              chip.textContent = label || "document";
+            }
+            list.appendChild(chip);
+          }
+
+          filesWrap.appendChild(filesTitle);
+          filesWrap.appendChild(list);
+          card.appendChild(filesWrap);
+        }
+
+        container.appendChild(card);
+      }
+
+      allRecordsEl.innerHTML = "";
+      allRecordsEl.appendChild(container);
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+      allRecordsEl.textContent = "Loading…";
+      try {
+        const res = await api.hrGetAll();
+        // Optional: sort or limit results
+        // const sorted = res.slice().sort((a, b) => (a.onboardingId > b.onboardingId ? -1 : 1));
+        // renderRecords(sorted.slice(0, 50));
+        renderRecords(res);
+      } catch (err) {
+        allRecordsEl.textContent = `Error: ${err.message}`;
+      }
+    });
+
+    document.getElementById("updBtn").addEventListener("click", async () => {
+      const id = document.getElementById("updId").value.trim();
+      const status = document.getElementById("updStatus").value.trim();
+      if (!id || !status) {
+        updMsg.textContent = "Enter onboarding ID and status";
+        updMsg.className = "alert alert--error";
+        return;
+      }
+      try {
+        await api.hrUpdateStatusById(id, status);
+        updMsg.textContent = "Status updated";
+        updMsg.className = "alert alert--success";
+      } catch (err) {
+        updMsg.textContent = `Error: ${err.message}`;
+        updMsg.className = "alert alert--error";
+      }
+    });
+  </script>
+</body>
+</html>

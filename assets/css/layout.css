@@ -1,0 +1,12 @@
+.container {
+  width: min(96%, 1120px);
+  margin-inline: auto;
+}
+
+.auth-container {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+}
+.grid { display: grid; gap: 12px; }

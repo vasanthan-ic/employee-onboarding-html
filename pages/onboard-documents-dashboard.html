@@ -1,0 +1,349 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboard Documents | InheritCloud</title>
+  <link rel="icon" href="../assets/img/logo.ico" />
+  <link rel="stylesheet" href="../assets/css/base.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <style>
+    /* Page header: align with HR dashboard style */
+    .brand-bar { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 12px; 
+      margin-bottom: 20px; /* a touch more breathing room */
+    }
+    .brand-left { display: flex; align-items: center; gap: 12px; }
+    /* .brand-icon { width: 28px; height: auto; display: block; opacity: .85; } */
+    .brand-title {
+margin: 0;
+font-size: 30px; /* keep larger size /
+line-height: 1.2;
+font-weight: 600; / normal/semibold look instead of 800 */
+letter-spacing: -0.01em;
+}
+@media (min-width: 768px) {
+.brand-title { font-size: 32px; }
+}
+
+    /* Navigation links */
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .nav-links a, .nav-links button {
+      color: var(--brand-600, #005b96);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border, #e2e8f0);
+      background: #fff;
+      cursor: pointer;
+    }
+    .nav-links a:hover, .nav-links button:hover { background: #f8fafc; }
+
+    /* Layout helpers */
+    .page-wrap { padding: 32px; }
+    .grid { display: grid; gap: 12px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 680px) { .row-2 { grid-template-columns: 1fr; } }
+
+    /* Form styles */
+    .form-field { margin-bottom: 14px; }
+    .form-field label { display: block; margin-bottom: 8px; font-weight: 600; color: #475569; }
+    input[type="text"], input[type="email"], input[type="tel"] {
+      width: 100%; padding: 12px 12px;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px; background: #fff;
+      font-size: 16px; line-height: 1.4;
+    }
+    input::placeholder { color: #94a3b8; }
+    input:focus {
+      border-color: var(--brand-600, #005b96);
+      box-shadow: var(--focus, 0 0 0 3px rgba(0,91,150,0.2));
+      outline: none;
+    }
+    input[type="file"] {
+      padding: 10px; background: #fff;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px; font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* Buttons + inline loading */
+    .btn { position: relative; }
+    .btn[disabled] { opacity: .7; cursor: not-allowed; }
+    .btn .loading {
+      display: none;
+      margin-left: 8px;
+      font-size: 90%;
+      opacity: .9;
+    }
+    .btn.loading .loading { display: inline; }
+
+    /* Alerts */
+    .alert { margin-top: 12px; padding: 12px; border-radius: 8px; font-weight: 600; }
+    .alert--error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .alert--success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+
+    /* Records cards */
+    .records { display: grid; gap: 12px; margin-top: 12px; }
+    .record-card { border: 1px solid var(--border, #e2e8f0); border-radius: 10px; background: #fff; padding: 14px; }
+    .record-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .record-title { font-weight: 700; font-size: 16px; margin: 0; }
+    .badge {
+      display: inline-block; padding: 4px 8px; border-radius: 999px;
+      font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc;
+    }
+    /* Optional status tints */
+    .badge--initialized { color:#92400e; background:#fef3c7; border-color:#fde68a; }
+    .badge--accepted { color:#065f46; background:#d1fae5; border-color:#a7f3d0; }
+    .badge--rejected { color:#991b1b; background:#fee2e2; border-color:#fecaca; }
+
+    .record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+    .field { font-size: 14px; color: #334155; }
+    .field b { color: #0f172a; margin-right: 6px; }
+    .files { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+    .files-title { font-weight: 600; font-size: 14px; margin: 0 0 6px; color: #0f172a; }
+    .file-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .file-chip {
+      font-size: 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 6px 8px; background: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .file-chip a { color: #005b96; text-decoration: none; }
+    .file-chip a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .record-grid { grid-template-columns: 1fr; }
+      .file-list { grid-template-columns: 1fr 1fr; }
+    }
+
+    .page-footer { margin-top: 24px; text-align: center; color: #64748b; font-size: 12px; display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .page-footer img { width: 16px; height: auto; opacity: .8; }
+  </style>
+</head>
+<body>
+  <main class="container page-wrap">
+    <div class="brand-bar">
+      <div class="brand-left">
+        <img src="../assets/img/logo.jpeg" alt="InheritCloud" class="brand-icon" />
+        <h1 class="brand-title">Onboard Documents</h1>
+      </div>
+      <nav class="nav-links" aria-label="Quick links">
+        <button id="logoutBtn" type="button" title="Clear session and return to Login">Logout</button>
+      </nav>
+    </div>
+
+    <!-- Upload Form -->
+    <form id="uploadSection" class="card" style="padding:20px; margin:16px 0;" enctype="multipart/form-data" novalidate>
+      <h2>Upload Required Documents</h2>
+      <div class="form-field">
+        <label for="onboardingId">Onboarding ID</label>
+        <input id="onboardingId" name="onboardingId" type="text" placeholder="e.g., ram101746" required />
+      </div>
+      <div class="row-2">
+        <div class="form-field">
+          <label for="firstName">First Name</label>
+          <input id="firstName" name="firstName" type="text" required />
+        </div>
+        <div class="form-field">
+          <label for="lastName">Last Name</label>
+          <input id="lastName" name="lastName" type="text" required />
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="form-field">
+          <label for="dateOfBirth">Date of Birth</label>
+          <input id="dateOfBirth" name="dateOfBirth" type="text" placeholder="DD-MM-YYYY" pattern="^\d{2}-\d{2}-\d{4}$" required />
+        </div>
+        <div class="form-field">
+          <label for="mail">Email</label>
+          <input id="mail" name="mail" type="email" required />
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="phone">Phone</label>
+        <input id="phone" name="phone" type="tel" required />
+      </div>
+      <div class="grid">
+        <div class="form-field">
+          <label for="aadhaar">Aadhaar</label>
+          <input type="file" id="aadhaar" name="aadhaar" accept=".pdf,.jpg,.jpeg,.png" required />
+        </div>
+        <div class="form-field">
+          <label for="pan">PAN</label>
+          <input type="file" id="pan" name="pan" accept=".pdf,.jpg,.jpeg,.png" required />
+        </div>
+        <div class="form-field">
+          <label for="resume">Resume</label>
+          <input type="file" id="resume" name="resume" accept=".pdf,.jpg,.jpeg" required />
+        </div>
+        <div class="form-field">
+          <label for="passportSizePhoto">Passport Photo</label>
+          <input type="file" id="passportSizePhoto" name="passportSizePhoto" accept=".jpg,.jpeg,.png" required />
+        </div>
+        <div class="form-field">
+          <label for="marksheet">Marksheet</label>
+          <input type="file" id="marksheet" name="marksheet" accept=".pdf,.jpg,.jpeg,.png" required />
+        </div>
+        <div class="form-field">
+          <label for="bankDetails">Bank Details</label>
+          <input type="file" id="bankDetails" name="bankDetails" accept=".pdf,.jpg,.jpeg,.png" required />
+        </div>
+      </div>
+      <button id="uploadBtn" type="submit" class="btn btn-primary">
+        Upload
+        <span class="loading">Loading…</span>
+      </button>
+      <div id="uploadMsg" class="alert" role="alert"></div>
+    </form>
+
+    <!-- Fetch Records -->
+    <section id="recordsSection" class="card" style="padding:20px; margin:16px 0;">
+      <h2>Get My Records</h2>
+      <div class="form-field">
+        <label for="qOnboardingId">Onboarding ID</label>
+        <input id="qOnboardingId" name="qOnboardingId" type="text" placeholder="e.g., ram101746" />
+      </div>
+      <button id="getBtn" class="btn" type="button">
+        Fetch
+        <span class="loading">Loading…</span>
+      </button>
+      <div id="myRecords" style="margin-top:12px;"></div>
+    </section>
+
+    <footer class="page-footer">
+      <span>© <span id="year"></span> InheritCloud</span>
+    </footer>
+  </main>
+
+  <!-- JS: left exactly as-is from your snippet -->
+  <script type="module">
+    const API_BASE = "https://onboarding-process-api-pbk20j.5sc6y6-3.usa-e2.cloudhub.io";
+
+    const uploadSection = document.getElementById("uploadSection");
+    const recordsSection = document.getElementById("recordsSection");
+    const uploadMsg = document.getElementById("uploadMsg");
+    const myRecordsEl = document.getElementById("myRecords");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const getBtn = document.getElementById("getBtn");
+    const yearEl = document.getElementById("year");
+    yearEl.textContent = new Date().getFullYear();
+
+    // Auth Guard
+    const token = localStorage.getItem("ONBOARD_AUTH_TOKEN");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("ONBOARD_AUTH_TOKEN");
+      localStorage.removeItem("ONBOARDING_ID");
+      window.location.href = "login.html";
+    });
+
+    function setBtnLoading(btn, isLoading) {
+      btn.disabled = isLoading;
+      btn.classList.toggle("loading", isLoading);
+    }
+
+    uploadSection.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      uploadMsg.textContent = "";
+      uploadMsg.className = "alert";
+      setBtnLoading(uploadBtn, true);
+
+      try {
+        const fd = new FormData(uploadSection);
+        const res = await fetch(`${API_BASE}/api/onboardingProcessLogic`, {
+          method: "POST",
+          headers: { Authorization: token },
+          body: fd
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Upload failed");
+
+        uploadMsg.textContent = "Upload successful!";
+        uploadMsg.classList.add("alert--success");
+
+        localStorage.setItem("ONBOARDING_ID", fd.get("onboardingId"));
+      } catch (err) {
+        uploadMsg.textContent = `Error: ${err.message}`;
+        uploadMsg.classList.add("alert--error");
+      } finally {
+        setBtnLoading(uploadBtn, false);
+      }
+    });
+
+    getBtn.addEventListener("click", async () => {
+      myRecordsEl.innerHTML = "";
+      setBtnLoading(getBtn, true);
+
+      try {
+        let id = document.getElementById("qOnboardingId").value.trim();
+        if (!id) {
+          id = localStorage.getItem("ONBOARDING_ID");
+        }
+        if (!id) {
+          myRecordsEl.innerHTML = "<p>Please enter your Onboarding ID.</p>";
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/api/onboardingProcessLogic/${encodeURIComponent(id)}`, {
+          method: "GET",
+          headers: { Authorization: token }
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData?.message || "Failed to fetch records.");
+        }
+
+        const data = await res.json();
+        renderRecords(data);
+      } catch (err) {
+        myRecordsEl.innerHTML = `<p>Error: ${err.message}</p>`;
+      } finally {
+        setBtnLoading(getBtn, false);
+      }
+    });
+
+    function renderRecords(data) {
+      const list = Array.isArray(data) ? data : [data];
+      myRecordsEl.innerHTML = list.map((rec) => {
+        const files = (rec.files || []).map(f => {
+          const name = f.fileType || f.name || "File";
+          const url = f.fileUrl;
+          return url
+            ? `<span class="file-chip"><a href="${url}" target="_blank">${name}</a></span>`
+            : `<span class="file-chip">${name}</span>`;
+        }).join("");
+
+        return `
+          <div class="record-card">
+            <div class="record-head">
+              <h3 class="record-title">${rec.firstName || ""} ${rec.lastName || ""}</h3>
+              <span class="badge badge--${(rec.status || "initialized").toLowerCase()}">${rec.status || "Initialized"}</span>
+            </div>
+            <div class="record-grid">
+              <div class="field"><b>Onboarding ID:</b> ${rec.onboardingId}</div>
+              <div class="field"><b>Email:</b> ${rec.email}</div>
+              <div class="field"><b>Phone:</b> ${rec.phone}</div>
+              <div class="field"><b>DOB:</b> ${rec.dateOfBirth}</div>
+            </div>
+            <div class="files">
+              <p class="files-title">Files</p>
+              <div class="file-list">${files}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  </script>
+</body>
+</html>
