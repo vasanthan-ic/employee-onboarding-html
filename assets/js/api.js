@@ -1,4 +1,6 @@
 const API_BASE = "https://onboarding-process-api-pbk20j.5sc6y6-3.usa-e2.cloudhub.io";
+const CLIENT_ID = "b66fec09f54f48ad9e69a1a62750adf5";
+const CLIENT_SECRET = "6251Ee768856495982d756b282321c77";
 
 function getAuthToken(role) {
   if (role === "HR") return localStorage.getItem("HR_AUTH_TOKEN");
@@ -6,17 +8,36 @@ function getAuthToken(role) {
   return null;
 }
 
-async function apiRequest(path, { method = "GET", body = null, headers = {}, authRole = null, isForm = false, timeoutMs = 20000 } = {}) {
+async function apiRequest(
+  path,
+  {
+    method = "GET",
+    body = null,
+    headers = {},
+    authRole = null,
+    isForm = false,
+    timeoutMs = 20000,
+  } = {}
+) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   const hdrs = new Headers(headers);
-  if (!isForm && !hdrs.has("Content-Type")) hdrs.set("Content-Type", "application/json");
 
+  // Set content type for non-form requests
+  if (!isForm && !hdrs.has("Content-Type")) {
+    hdrs.set("Content-Type", "application/json");
+  }
+
+  // Inject client credentials
+  hdrs.set("client_id", CLIENT_ID);
+  hdrs.set("client_secret", CLIENT_SECRET);
+
+  // Add role-based token if available
   if (authRole) {
     const token = getAuthToken(authRole);
     if (!token) throw new Error(`Missing token for role ${authRole}`);
-    hdrs.set("Authorization", token); // raw token per backend
+    hdrs.set("Authorization", token);
   }
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -33,21 +54,25 @@ async function apiRequest(path, { method = "GET", body = null, headers = {}, aut
 
   clearTimeout(timeout);
 
-  const ct = res.headers.get("content-type") || "";
-  const isJson = ct.includes("application/json");
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
   const data = isJson ? await res.json().catch(() => null) : await res.text();
 
   if (!res.ok) {
-    const msg = isJson && data && data.message ? data.message : `HTTP ${res.status}`;
+    const msg = isJson && data?.message ? data.message : `HTTP ${res.status}`;
     throw new Error(msg);
   }
+
   return data;
 }
 
 const api = {
   // Auth
   login: (userId, password) =>
-    apiRequest("/api/loginProcessLogic", { method: "POST", body: { userId, password } }),
+    apiRequest("/api/loginProcessLogic", {
+      method: "POST",
+      body: { userId, password },
+    }),
 
   setupPassword: (onboardingId, password, confirmPassword) =>
     apiRequest("/api/loginProcessLogic/setup-password", {
@@ -57,10 +82,17 @@ const api = {
 
   // HR endpoints
   hrCreateOnboard: (payload) =>
-    apiRequest("/api/hrProcessLogic", { method: "POST", body: payload, authRole: "HR" }),
+    apiRequest("/api/hrProcessLogic", {
+      method: "POST",
+      body: payload,
+      authRole: "HR",
+    }),
 
   hrGetAll: () =>
-    apiRequest("/api/hrProcessLogic", { method: "GET", authRole: "HR" }),
+    apiRequest("/api/hrProcessLogic", {
+      method: "GET",
+      authRole: "HR",
+    }),
 
   hrUpdateStatusById: (onboardingId, status) =>
     apiRequest(`/api/hrProcessLogic/${encodeURIComponent(onboardingId)}`, {

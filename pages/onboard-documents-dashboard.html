@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,6 +232,14 @@ letter-spacing: -0.01em;
     const getBtn = document.getElementById("getBtn");
     const yearEl = document.getElementById("year");
     yearEl.textContent = new Date().getFullYear();
+    // Auto-fill onboardingId from localStorage
+    const onboardingIdField = document.getElementById("onboardingId");
+    const storedId = localStorage.getItem("ONBOARDING_ID");
+
+    if (storedId) {
+      onboardingIdField.value = storedId;
+      onboardingIdField.readOnly = true; // Optional: prevent editing
+    }
 
     // Auth Guard
     const token = localStorage.getItem("ONBOARD_AUTH_TOKEN");
