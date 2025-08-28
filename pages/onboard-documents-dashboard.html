@@ -220,137 +220,137 @@ letter-spacing: -0.01em;
   </main>
 
   <!-- JS: left exactly as-is from your snippet -->
-  <script type="module">
-    const API_BASE = "https://onboarding-process-api-pbk20j.5sc6y6-3.usa-e2.cloudhub.io";
+<script type="module">
+  import { getAuthToken, apiRequest, ENDPOINTS } from "../assets/js/api.js";
 
-    const uploadSection = document.getElementById("uploadSection");
-    const recordsSection = document.getElementById("recordsSection");
-    const uploadMsg = document.getElementById("uploadMsg");
-    const myRecordsEl = document.getElementById("myRecords");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const getBtn = document.getElementById("getBtn");
-    const yearEl = document.getElementById("year");
-    yearEl.textContent = new Date().getFullYear();
-    // Auto-fill onboardingId from localStorage
-    const onboardingIdField = document.getElementById("onboardingId");
-    const storedId = localStorage.getItem("ONBOARDING_ID");
+  // Elements
+  const uploadSection = document.getElementById("uploadSection");
+  const recordsSection = document.getElementById("recordsSection");
+  const uploadMsg = document.getElementById("uploadMsg");
+  const myRecordsEl = document.getElementById("myRecords");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const getBtn = document.getElementById("getBtn");
+  const yearEl = document.getElementById("year");
+  yearEl.textContent = new Date().getFullYear();
 
-    if (storedId) {
-      onboardingIdField.value = storedId;
-      onboardingIdField.readOnly = true; // Optional: prevent editing
+  // Auto-fill onboardingId
+  const onboardingIdField = document.getElementById("onboardingId");
+  const storedId = localStorage.getItem("ONBOARDING_ID");
+  if (storedId) {
+    onboardingIdField.value = storedId;
+    onboardingIdField.readOnly = true;
+  }
+
+  // ✅ Auth Guard
+  if (!getAuthToken("ONBOARD")) {
+    window.location.replace("login.html");
+  }
+
+  // ✅ Logout
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("ONBOARD_AUTH_TOKEN");
+    localStorage.removeItem("ONBOARDING_ID");
+    window.location.replace("login.html");
+  });
+
+  // Loader toggle
+  function setBtnLoading(btn, isLoading) {
+    btn.disabled = isLoading;
+    btn.classList.toggle("loading", isLoading);
+  }
+
+  // ✅ Upload documents
+  uploadSection.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    uploadMsg.textContent = "";
+    uploadMsg.className = "alert";
+    setBtnLoading(uploadBtn, true);
+
+    try {
+      const fd = new FormData(uploadSection);
+
+      await apiRequest(ENDPOINTS.onboardInsertDocs, {
+        method: "POST",
+        body: fd,
+        isForm: true,
+        authRole: "ONBOARD",
+      });
+
+      uploadMsg.textContent = "Upload successful!";
+      uploadMsg.classList.add("alert--success");
+
+      localStorage.setItem("ONBOARDING_ID", fd.get("onboardingId"));
+    } catch (err) {
+      uploadMsg.textContent = `Error: ${err.message}`;
+      uploadMsg.classList.add("alert--error");
+    } finally {
+      setBtnLoading(uploadBtn, false);
     }
+  });
 
-    // Auth Guard
-    const token = localStorage.getItem("ONBOARD_AUTH_TOKEN");
-    if (!token) {
-      window.location.href = "login.html";
-    }
+  // ✅ Fetch records
+  getBtn.addEventListener("click", async () => {
+    myRecordsEl.innerHTML = "";
+    setBtnLoading(getBtn, true);
 
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("ONBOARD_AUTH_TOKEN");
-      localStorage.removeItem("ONBOARDING_ID");
-      window.location.href = "login.html";
-    });
+    try {
+      let id = document.getElementById("qOnboardingId").value.trim();
+      if (!id) id = localStorage.getItem("ONBOARDING_ID");
 
-    function setBtnLoading(btn, isLoading) {
-      btn.disabled = isLoading;
-      btn.classList.toggle("loading", isLoading);
-    }
-
-    uploadSection.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      uploadMsg.textContent = "";
-      uploadMsg.className = "alert";
-      setBtnLoading(uploadBtn, true);
-
-      try {
-        const fd = new FormData(uploadSection);
-        const res = await fetch(`${API_BASE}/api/onboardingProcessLogic`, {
-          method: "POST",
-          headers: { Authorization: token },
-          body: fd
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Upload failed");
-
-        uploadMsg.textContent = "Upload successful!";
-        uploadMsg.classList.add("alert--success");
-
-        localStorage.setItem("ONBOARDING_ID", fd.get("onboardingId"));
-      } catch (err) {
-        uploadMsg.textContent = `Error: ${err.message}`;
-        uploadMsg.classList.add("alert--error");
-      } finally {
-        setBtnLoading(uploadBtn, false);
+      if (!id) {
+        myRecordsEl.innerHTML = "<p>Please enter your Onboarding ID.</p>";
+        return;
       }
-    });
 
-    getBtn.addEventListener("click", async () => {
-      myRecordsEl.innerHTML = "";
-      setBtnLoading(getBtn, true);
+      const res = await apiRequest(ENDPOINTS.onboardGetDocs(id), {
+        method: "GET",
+        authRole: "ONBOARD",
+      });
 
-      try {
-        let id = document.getElementById("qOnboardingId").value.trim();
-        if (!id) {
-          id = localStorage.getItem("ONBOARDING_ID");
-        }
-        if (!id) {
-          myRecordsEl.innerHTML = "<p>Please enter your Onboarding ID.</p>";
-          return;
-        }
+      renderRecords(res);
+    } catch (err) {
+      myRecordsEl.innerHTML = `<p>Error: ${err.message}</p>`;
+    } finally {
+      setBtnLoading(getBtn, false);
+    }
+  });
 
-        const res = await fetch(`${API_BASE}/api/onboardingProcessLogic/${encodeURIComponent(id)}`, {
-          method: "GET",
-          headers: { Authorization: token }
-        });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData?.message || "Failed to fetch records.");
-        }
-
-        const data = await res.json();
-        renderRecords(data);
-      } catch (err) {
-        myRecordsEl.innerHTML = `<p>Error: ${err.message}</p>`;
-      } finally {
-        setBtnLoading(getBtn, false);
-      }
-    });
-
-    function renderRecords(data) {
-      const list = Array.isArray(data) ? data : [data];
-      myRecordsEl.innerHTML = list.map((rec) => {
-        const files = (rec.files || []).map(f => {
-          const name = f.fileType || f.name || "File";
-          const url = f.fileUrl;
-          return url
-            ? `<span class="file-chip"><a href="${url}" target="_blank">${name}</a></span>`
-            : `<span class="file-chip">${name}</span>`;
-        }).join("");
-
-        return `
-          <div class="record-card">
-            <div class="record-head">
-              <h3 class="record-title">${rec.firstName || ""} ${rec.lastName || ""}</h3>
-              <span class="badge badge--${(rec.status || "initialized").toLowerCase()}">${rec.status || "Initialized"}</span>
-            </div>
-            <div class="record-grid">
-              <div class="field"><b>Onboarding ID:</b> ${rec.onboardingId}</div>
-              <div class="field"><b>Email:</b> ${rec.email}</div>
-              <div class="field"><b>Phone:</b> ${rec.phone}</div>
-              <div class="field"><b>DOB:</b> ${rec.dateOfBirth}</div>
-            </div>
-            <div class="files">
-              <p class="files-title">Files</p>
-              <div class="file-list">${files}</div>
-            </div>
-          </div>
-        `;
+  // ✅ Render records
+  function renderRecords(data) {
+    const list = Array.isArray(data) ? data : [data];
+    myRecordsEl.innerHTML = list.map((rec) => {
+      const files = (rec.files || []).map(f => {
+        const name = f.fileType || f.name || "File";
+        const url = f.fileUrl;
+        return url
+          ? `<span class="file-chip"><a href="${url}" target="_blank">${name}</a></span>`
+          : `<span class="file-chip">${name}</span>`;
       }).join("");
-    }
-  </script>
+
+      return `
+        <div class="record-card">
+          <div class="record-head">
+            <h3 class="record-title">${rec.firstName || ""} ${rec.lastName || ""}</h3>
+            <span class="badge badge--${(rec.status || "initialized").toLowerCase()}">
+              ${rec.status || "Initialized"}
+            </span>
+          </div>
+          <div class="record-grid">
+            <div class="field"><b>Onboarding ID:</b> ${rec.onboardingId}</div>
+            <div class="field"><b>Email:</b> ${rec.email || rec.mail}</div>
+            <div class="field"><b>Phone:</b> ${rec.phone}</div>
+            <div class="field"><b>DOB:</b> ${rec.dateOfBirth}</div>
+          </div>
+          <div class="files">
+            <p class="files-title">Files</p>
+            <div class="file-list">${files}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+</script>
+
 </body>
 </html>

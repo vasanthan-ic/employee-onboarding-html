@@ -13,7 +13,6 @@
   <link rel="stylesheet" href="../assets/css/components.css" />
   <link rel="stylesheet" href="../assets/css/pages/login.css" />
   <style>
-    /* Safe overrides to ensure spacious layout if page CSS is missing */
     .auth-container { min-height: 100dvh; display: grid; place-items: center; padding: 40px; }
     .auth-card { width: 100%; max-width: 520px; padding: 40px 36px; }
     .auth-title { font-size: 28px; margin-top: 8px; }
@@ -29,7 +28,6 @@
   <main class="container auth-container">
     <section class="card auth-card" role="form" aria-labelledby="login-title">
       <div class="brand">
-        <!-- Replace with your logo filename if different -->
         <img src="../assets/img/logo.jpeg" alt="InheritCloud" class="brand-logo" />
       </div>
 
@@ -50,7 +48,7 @@
             aria-required="true"
           />
           <small class="field-hint">Use your corporate ID or email</small>
-          <p class="field-error" id="userIdError" role="alert" aria-live="polite"></p>
+          <p class="field-error" id="userIdError" role="alert"></p>
         </div>
 
         <div class="form-field">
@@ -66,9 +64,9 @@
               minlength="8"
               aria-required="true"
             />
-            <button type="button" class="btn-text" id="togglePassword" aria-label="Show password">Show</button>
+            <button type="button" class="btn-text" id="togglePassword">Show</button>
           </div>
-          <p class="field-error" id="passwordError" role="alert" aria-live="polite"></p>
+          <p class="field-error" id="passwordError" role="alert"></p>
         </div>
 
         <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
@@ -76,8 +74,7 @@
           <span class="btn-spinner" aria-hidden="true"></span>
         </button>
 
-        <div class="alert" id="formAlert" role="status" aria-live="polite"></div>
-
+        <div class="alert" id="formAlert" role="status"></div>
       </form>
 
       <footer class="auth-footer">
@@ -87,133 +84,106 @@
     </section>
   </main>
 
-  <noscript>
-    <div class="noscript">JavaScript is required to sign in. Please enable it in your browser settings.</div>
-  </noscript>
+<!-- Import API module -->
+<script type="module">
+  import { apiRequest, ENDPOINTS } from "../assets/js/api.js";
 
-  <!-- Scripts: keep order; using modules for clean imports -->
-  <script type="module">
-    // API base is CloudHub-only per your requirement
-    const API_BASE = "https://onboarding-process-api-pbk20j.5sc6y6-3.usa-e2.cloudhub.io";
-
-    // Minimal API helper (POST login)
-    async function apiLogin(userId, password) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      try {
-        const res = await fetch(`${API_BASE}/api/loginProcessLogic`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, password }),
-          signal: controller.signal,
-          credentials: "omit",
-          cache: "no-store",
-        });
-        const ct = res.headers.get("content-type") || "";
-        const isJson = ct.includes("application/json");
-        const data = isJson ? await res.json() : await res.text();
-        if (!res.ok) {
-          const msg = isJson && data && data.message ? data.message : `HTTP ${res.status}`;
-          throw new Error(msg);
-        }
-        return data;
-      } finally {
-        clearTimeout(timeout);
-      }
-    }
-
-    // Auth utilities
-    function saveTokenByRole(token, role) {
-      if (role === "HR") localStorage.setItem("HR_AUTH_TOKEN", token);
-      else if (role === "ONBOARD") localStorage.setItem("ONBOARD_AUTH_TOKEN", token);
-      else throw new Error("Unknown role");
-    }
-    function decodeJwtPayload(token) {
-      try {
-        const [, payload] = token.split(".");
-        return JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-      } catch {
-        return null;
-      }
-    }
-    function routeByRole(role) {
-      if (role === "HR") window.location.assign("hr-dashboard.html");
-      else if (role === "ONBOARD") window.location.assign("onboard-documents-dashboard.html");
-      else throw new Error("Unknown role");
-    }
-
-    // UI bindings
-    const form = document.getElementById("loginForm");
-    const userIdEl = document.getElementById("userId");
-    const passwordEl = document.getElementById("password");
-    const togglePasswordBtn = document.getElementById("togglePassword");
-    const alertEl = document.getElementById("formAlert");
-    const submitBtn = document.getElementById("submitBtn");
-    const yearEl = document.getElementById("year");
-
-    yearEl.textContent = new Date().getFullYear();
-
-    function setLoading(b) {
-      submitBtn.disabled = b;
-      const sp = submitBtn.querySelector(".btn-spinner");
-      if (sp) sp.style.display = b ? "inline-block" : "none";
-    }
-    function showAlert(message, type = "error") {
-      alertEl.textContent = message;
-      alertEl.className = `alert alert--${type}`;
-    }
-    function clearFieldErrors() {
-      document.getElementById("userIdError").textContent = "";
-      document.getElementById("passwordError").textContent = "";
-    }
-    function validate() {
-      let valid = true;
-      clearFieldErrors();
-      if (!userIdEl.value.trim()) {
-        document.getElementById("userIdError").textContent = "Enter your User ID";
-        valid = false;
-      }
-      if (!passwordEl.value.trim()) {
-        document.getElementById("passwordError").textContent = "Enter your password";
-        valid = false;
-      } else if (passwordEl.value.length < 3) {
-        document.getElementById("passwordError").textContent = "Password must be at least 8 characters";
-        valid = false;
-      }
-      return valid;
-    }
-
-    togglePasswordBtn.addEventListener("click", () => {
-      const isPwd = passwordEl.type === "password";
-      passwordEl.type = isPwd ? "text" : "password";
-      togglePasswordBtn.textContent = isPwd ? "Hide" : "Show";
-      togglePasswordBtn.setAttribute("aria-label", isPwd ? "Hide password" : "Show password");
+  async function apiLogin(userId, password) {
+    return apiRequest(ENDPOINTS.login, {
+      method: "POST",
+      body: { userId, password },
     });
+  }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!validate()) return;
+  function saveTokenByRole(token, role) {
+    if (role === "HR") localStorage.setItem("HR_AUTH_TOKEN", token);
+    else if (role === "ONBOARD") localStorage.setItem("ONBOARD_AUTH_TOKEN", token);
+  }
 
-      setLoading(true);
-      showAlert("");
+  function decodeJwtPayload(token) {
+    try {
+      const [, payload] = token.split(".");
+      return JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    } catch {
+      return null;
+    }
+  }
 
-      try {
-        const data = await apiLogin(userIdEl.value.trim(), passwordEl.value.trim());
+  function routeByRole(role) {
+    if (role === "HR") window.location.assign("hr-dashboard.html");
+    else if (role === "ONBOARD") window.location.assign("onboard-documents-dashboard.html");
+  }
 
-        if (!data || !data.Authorization_Token) throw new Error("No token received");
-        const decoded = decodeJwtPayload(data.Authorization_Token);
-        const role = (decoded && decoded.role) || data.role;
-        if (!role) throw new Error("No role found in token or response");
+  // --- DOM elements ---
+  const form = document.getElementById("loginForm");
+  const userIdEl = document.getElementById("userId");
+  const passwordEl = document.getElementById("password");
+  const togglePasswordBtn = document.getElementById("togglePassword");
+  const alertEl = document.getElementById("formAlert");
+  const submitBtn = document.getElementById("submitBtn");
+  const yearEl = document.getElementById("year");
 
-        saveTokenByRole(data.Authorization_Token, role);
-        showAlert("Login successful. Redirecting…", "success");
-        setTimeout(() => routeByRole(role), 500);
-      } catch (err) {
-        showAlert(`Login failed: ${err.message || "Invalid credentials"}`, "error");
-      } finally {
-        setLoading(false);
-      }
-    });
-  </script>
+  yearEl.textContent = new Date().getFullYear();
+
+  function setLoading(b) {
+    submitBtn.disabled = b;
+    const sp = submitBtn.querySelector(".btn-spinner");
+    if (sp) sp.style.display = b ? "inline-block" : "none";
+  }
+
+  function showAlert(message, type = "error") {
+    alertEl.textContent = message;
+    alertEl.className = `alert alert--${type}`;
+  }
+
+  function validate() {
+    let valid = true;
+    document.getElementById("userIdError").textContent = "";
+    document.getElementById("passwordError").textContent = "";
+
+    if (!userIdEl.value.trim()) {
+      document.getElementById("userIdError").textContent = "Enter your User ID";
+      valid = false;
+    }
+    if (!passwordEl.value.trim()) {
+      document.getElementById("passwordError").textContent = "Enter your password";
+      valid = false;
+    }
+    return valid;
+  }
+
+  togglePasswordBtn.addEventListener("click", () => {
+    const isPwd = passwordEl.type === "password";
+    passwordEl.type = isPwd ? "text" : "password";
+    togglePasswordBtn.textContent = isPwd ? "Hide" : "Show";
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setLoading(true);
+    showAlert("");
+
+    try {
+      const data = await apiLogin(userIdEl.value.trim(), passwordEl.value.trim());
+      if (!data?.Authorization_Token) throw new Error("No token received");
+
+      const decoded = decodeJwtPayload(data.Authorization_Token);
+      const role = decoded?.role || data.role;
+      if (!role) throw new Error("No role found");
+
+      saveTokenByRole(data.Authorization_Token, role);
+      showAlert("Login successful. Redirecting…", "success");
+      setTimeout(() => routeByRole(role), 500);
+    } catch (err) {
+      showAlert(`Login failed: ${err.message}`, "error");
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+
+
 </body>
 </html>

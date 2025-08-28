@@ -234,177 +234,194 @@
     </section>
   </main>
 
-  <script type="module">
-    import { getAuthToken, api } from "../assets/js/api.js";
+<script type="module">
+  import { getAuthToken, apiRequest, ENDPOINTS } from "../assets/js/api.js";
 
-    // Auth guard
-    if (!getAuthToken("HR")) {
-      window.location.replace("login.html");
-    }
+  // ✅ Auth guard
+  if (!getAuthToken("HR")) {
+    window.location.replace("login.html");
+  }
 
-    // Button loader helpers
-    function withLoading(button, fn) {
-      return async (...args) => {
-        button.classList.add("loading");
-        try {
-          return await fn(...args);
-        } finally {
-          button.classList.remove("loading");
-        }
-      };
-    }
-
-    const createForm = document.getElementById("createForm");
-    const createBtn = document.getElementById("createBtn");
-    const createMsg = document.getElementById("createMsg");
-    const refreshBtn = document.getElementById("refreshBtn");
-    const allRecordsEl = document.getElementById("allRecords");
-    const updBtn = document.getElementById("updBtn");
-    const updMsg = document.getElementById("updMsg");
-    const logoutBtn = document.getElementById("logoutBtn");
-
-    // Logout
-    logoutBtn.addEventListener("click", withLoading(logoutBtn, async () => {
-      localStorage.removeItem("HR_AUTH"); // adjust if different key
-      window.location.replace("login.html");
-    }));
-
-    // Create record
-    createForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const payload = {
-        firstName: document.getElementById("firstName").value.trim(),
-        lastName: document.getElementById("lastName").value.trim(),
-        email: document.getElementById("email").value.trim(),
-      };
-      withLoading(createBtn, async () => {
-        try {
-          await api.hrCreateOnboard(payload);
-          createMsg.textContent = "Created successfully";
-          createMsg.className = "alert alert--success";
-        } catch (err) {
-          createMsg.textContent = `Error: ${err.message}`;
-          createMsg.className = "alert alert--error";
-        }
-      })();
-    });
-
-    // Render records
-    function renderRecords(records = []) {
-      if (!Array.isArray(records) || records.length === 0) {
-        allRecordsEl.innerHTML = "<p>No records found.</p>";
-        return;
+  // Loader helper
+  function withLoading(button, fn) {
+    return async (...args) => {
+      button.classList.add("loading");
+      try {
+        return await fn(...args);
+      } finally {
+        button.classList.remove("loading");
       }
-      const container = document.createElement("div");
-      container.className = "records";
-      for (const r of records) {
-        const card = document.createElement("div");
-        card.className = "record-card";
+    };
+  }
 
-        const head = document.createElement("div");
-        head.className = "record-head";
+  const createForm = document.getElementById("createForm");
+  const createBtn = document.getElementById("createBtn");
+  const createMsg = document.getElementById("createMsg");
+  const refreshBtn = document.getElementById("refreshBtn");
+  const allRecordsEl = document.getElementById("allRecords");
+  const updBtn = document.getElementById("updBtn");
+  const updMsg = document.getElementById("updMsg");
+  const logoutBtn = document.getElementById("logoutBtn");
 
-        const title = document.createElement("h3");
-        title.className = "record-title";
-        title.textContent = `${r.firstName || ""} ${r.lastName || ""}`.trim() || r.onboardingId;
+  // ✅ Logout
+  logoutBtn.addEventListener("click", withLoading(logoutBtn, async () => {
+    localStorage.removeItem("HR_AUTH_TOKEN");
+    window.location.replace("login.html");
+  }));
 
-        const badge = document.createElement("span");
-        const status = String(r.status || "INITIALIZED").toUpperCase();
-        badge.className = `badge ${status}`;
-        badge.textContent = status;
+  // ✅ Create onboarding record
+  createForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const payload = {
+      firstName: document.getElementById("firstName").value.trim(),
+      lastName: document.getElementById("lastName").value.trim(),
+      email: document.getElementById("email").value.trim(),
+    };
 
-        head.appendChild(title);
-        head.appendChild(badge);
+    withLoading(createBtn, async () => {
+      try {
+        await apiRequest(ENDPOINTS.hrInsert, {
+          method: "POST",
+          body: payload,
+          authRole: "HR",
+        });
+        createMsg.textContent = "Created successfully";
+        createMsg.className = "alert alert--success";
+      } catch (err) {
+        createMsg.textContent = `Error: ${err.message}`;
+        createMsg.className = "alert alert--error";
+      }
+    })();
+  });
 
-        const grid = document.createElement("div");
-        grid.className = "record-grid";
-        const fields = [
-          ["Onboarding ID", r.onboardingId],
-          ["Email", r.email || r.mail],
-          ["Phone", r.phone],
-          ["DOB", r.dateOfBirth],
-        ];
-        for (const [label, value] of fields) {
-          if (!value) continue;
-          const p = document.createElement("p");
-          p.className = "field";
-          p.innerHTML = `<b>${label}:</b> ${value}`;
-          grid.appendChild(p);
-        }
+  // ✅ Render records
+  function renderRecords(records = []) {
+    if (!Array.isArray(records) || records.length === 0) {
+      allRecordsEl.innerHTML = "<p>No records found.</p>";
+      return;
+    }
+    const container = document.createElement("div");
+    container.className = "records";
 
-        card.appendChild(head);
-        card.appendChild(grid);
+    for (const r of records) {
+      const card = document.createElement("div");
+      card.className = "record-card";
 
-        if (Array.isArray(r.files) && r.files.length) {
-          const filesWrap = document.createElement("div");
-          filesWrap.className = "files";
+      const head = document.createElement("div");
+      head.className = "record-head";
 
-          const filesTitle = document.createElement("p");
-          filesTitle.className = "files-title";
-          filesTitle.textContent = "Files";
+      const title = document.createElement("h3");
+      title.className = "record-title";
+      title.textContent = `${r.firstName || ""} ${r.lastName || ""}`.trim() || r.onboardingId;
 
-          const list = document.createElement("div");
-          list.className = "file-list";
+      const badge = document.createElement("span");
+      const status = String(r.status || "INITIALIZED").toUpperCase();
+      badge.className = `badge ${status}`;
+      badge.textContent = status;
 
-          for (const f of r.files) {
-            const chip = document.createElement("div");
-            chip.className = "file-chip";
-            const label = (f.fileType || "").toString();
-            const url = (f.fileUrl || "").toString();
+      head.appendChild(title);
+      head.appendChild(badge);
 
-            if (url) {
-              const a = document.createElement("a");
-              a.href = url;
-              a.target = "_blank";
-              a.rel = "noopener noreferrer";
-              a.textContent = label || "document";
-              chip.appendChild(a);
-            } else {
-              chip.textContent = label || "document";
-            }
-            list.appendChild(chip);
+      const grid = document.createElement("div");
+      grid.className = "record-grid";
+      const fields = [
+        ["Onboarding ID", r.onboardingId],
+        ["Email", r.email || r.mail],
+        ["Phone", r.phone],
+        ["DOB", r.dateOfBirth],
+      ];
+      for (const [label, value] of fields) {
+        if (!value) continue;
+        const p = document.createElement("p");
+        p.className = "field";
+        p.innerHTML = `<b>${label}:</b> ${value}`;
+        grid.appendChild(p);
+      }
+
+      card.appendChild(head);
+      card.appendChild(grid);
+
+      if (Array.isArray(r.files) && r.files.length) {
+        const filesWrap = document.createElement("div");
+        filesWrap.className = "files";
+
+        const filesTitle = document.createElement("p");
+        filesTitle.className = "files-title";
+        filesTitle.textContent = "Files";
+
+        const list = document.createElement("div");
+        list.className = "file-list";
+
+        for (const f of r.files) {
+          const chip = document.createElement("div");
+          chip.className = "file-chip";
+          const label = (f.fileType || "").toString();
+          const url = (f.fileUrl || "").toString();
+
+          if (url) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = label || "document";
+            chip.appendChild(a);
+          } else {
+            chip.textContent = label || "document";
           }
-
-          filesWrap.appendChild(filesTitle);
-          filesWrap.appendChild(list);
-          card.appendChild(filesWrap);
+          list.appendChild(chip);
         }
 
-        container.appendChild(card);
+        filesWrap.appendChild(filesTitle);
+        filesWrap.appendChild(list);
+        card.appendChild(filesWrap);
       }
-      allRecordsEl.innerHTML = "";
-      allRecordsEl.appendChild(container);
+
+      container.appendChild(card);
     }
+    allRecordsEl.innerHTML = "";
+    allRecordsEl.appendChild(container);
+  }
 
-    // Refresh records
-    refreshBtn.addEventListener("click", withLoading(refreshBtn, async () => {
-      allRecordsEl.textContent = "Loading…";
-      try {
-        const res = await api.hrGetAll();
-        renderRecords(res);
-      } catch (err) {
-        allRecordsEl.textContent = `Error: ${err.message}`;
-      }
-    }));
+  // ✅ Refresh records
+  refreshBtn.addEventListener("click", withLoading(refreshBtn, async () => {
+    allRecordsEl.textContent = "Loading…";
+    try {
+      const res = await apiRequest(ENDPOINTS.hrGetAll, {
+        method: "GET",
+        authRole: "HR",
+      });
+      renderRecords(res);
+    } catch (err) {
+      allRecordsEl.textContent = `Error: ${err.message}`;
+    }
+  }));
 
-    // Update status
-    updBtn.addEventListener("click", withLoading(updBtn, async () => {
-      const id = document.getElementById("updId").value.trim();
-      const status = document.getElementById("updStatus").value.trim();
-      if (!id || !status) {
-        updMsg.textContent = "Enter onboarding ID and status";
-        updMsg.className = "alert alert--error";
-        return;
-      }
-      try {
-        await api.hrUpdateStatusById(id, status);
-        updMsg.textContent = "Status updated";
-        updMsg.className = "alert alert--success";
-      } catch (err) {
-        updMsg.textContent = `Error: ${err.message}`;
-        updMsg.className = "alert alert--error";
-      }
-    }));
-  </script>
+  // ✅ Update status
+  updBtn.addEventListener("click", withLoading(updBtn, async () => {
+    const id = document.getElementById("updId").value.trim();
+    const status = document.getElementById("updStatus").value.trim();
+    if (!id || !status) {
+      updMsg.textContent = "Enter onboarding ID and status";
+      updMsg.className = "alert alert--error";
+      return;
+    }
+    try {
+      await apiRequest(ENDPOINTS.hrUpdateStatus(id), {
+        method: "PATCH",
+        body: { status },
+        authRole: "HR",
+      });
+      updMsg.textContent = "Status updated";
+      updMsg.className = "alert alert--success";
+    } catch (err) {
+      updMsg.textContent = `Error: ${err.message}`;
+      updMsg.className = "alert alert--error";
+    }
+  }));
+
+  // 🔄 Auto-load records on page load
+  refreshBtn.click();
+</script>
+
 </body>
 </html>

@@ -1,3 +1,4 @@
+import { api } from "./api.js?v=1";
 import { saveTokenByRole, decodeJwtPayload, routeByRole } from "./auth.js?v=1";
 
 const form = document.getElementById("loginForm");
@@ -58,20 +59,14 @@ form.addEventListener("submit", async (e) => {
   showAlert("");
 
   try {
-    const payload = {
-      userId: userIdEl.value.trim(),
-      password: passwordEl.value.trim(),
-    };
+    // Call login endpoint via api.js wrapper (adds client_id & client_secret)
+    const data = await api.login(userIdEl.value.trim(), passwordEl.value.trim());
 
-    // POST to your login endpoint
-    const data = await apiPost("/api/loginProcessLogic", payload);
-
-    // Expect Authorization_Token from backend
     if (!data || !data.Authorization_Token) {
       throw new Error("No authorization token received");
     }
 
-    // Prefer role from payload if backend includes it. Fallback to JWT payload
+    // Decode role from JWT payload or fallback to response
     const decoded = decodeJwtPayload(data.Authorization_Token);
     const role = (decoded && decoded.role) || data.role;
 
@@ -80,7 +75,6 @@ form.addEventListener("submit", async (e) => {
     saveTokenByRole(data.Authorization_Token, role);
     showAlert("Login successful. Redirecting…", "success");
 
-    // Minimal delay for UI feedback
     setTimeout(() => routeByRole(role), 400);
   } catch (err) {
     const msg = err?.message || "Login failed";
