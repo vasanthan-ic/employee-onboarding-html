@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="../assets/css/layout.css" />
   <link rel="stylesheet" href="../assets/css/components.css" />
 
-  <!-- Page-scoped styles: input normalization + records cards -->
   <style>
     /* Helpers */
     .grid { display: grid; gap: 12px; }
@@ -142,13 +141,42 @@
       .file-list { grid-template-columns: 1fr 1fr; }
     }
 
+    /* Spinner inside button */
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #cbd5e1;
+      border-top: 2px solid #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .btn.loading .spinner {
+      display: inline-block;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <main class="container page-wrap">
-    <header style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <img src="../assets/img/logo.jpeg" alt="InheritCloud" class="brand-icon" />
-      <h1 style="margin:0;">HR Dashboard</h1>
+    <header style="display:flex;align-items:center;gap:12px;margin-bottom:16px;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="../assets/img/logo.jpeg" alt="InheritCloud" class="brand-icon" />
+        <h1 style="margin:0;">HR Dashboard</h1>
+      </div>
+      <button id="logoutBtn" class="btn btn-danger">
+        <span>Logout</span>
+        <div class="spinner"></div>
+      </button>
     </header>
 
     <!-- Create Onboarding Record -->
@@ -167,7 +195,10 @@
           <label for="email">Email</label>
           <input id="email" type="email" placeholder="name@company.com" required />
         </div>
-        <button class="btn btn-primary" type="submit">Create</button>
+        <button id="createBtn" class="btn btn-primary" type="submit">
+          <span>Create</span>
+          <div class="spinner"></div>
+        </button>
       </form>
       <div id="createMsg" class="alert" role="status" aria-live="polite"></div>
     </section>
@@ -175,7 +206,10 @@
     <!-- All Onboard Records -->
     <section class="card" style="padding:20px; margin:16px 0;">
       <h2 style="margin-top:0;">All Onboard Records</h2>
-      <button id="refreshBtn" class="btn">Refresh</button>
+      <button id="refreshBtn" class="btn">
+        <span>Refresh</span>
+        <div class="spinner"></div>
+      </button>
       <div id="allRecords" style="margin-top:12px;"></div>
     </section>
 
@@ -192,52 +226,77 @@
           <input id="updStatus" type="text" placeholder="e.g., ACCEPTED" />
         </div>
       </div>
-      <button id="updBtn" class="btn btn-primary">Update</button>
+      <button id="updBtn" class="btn btn-primary">
+        <span>Update</span>
+        <div class="spinner"></div>
+      </button>
       <div id="updMsg" class="alert" role="status" aria-live="polite"></div>
     </section>
   </main>
 
   <script type="module">
+    import { getAuthToken, api } from "../assets/js/api.js";
+
     // Auth guard
-    import { getAuthToken } from "../assets/js/api.js";
     if (!getAuthToken("HR")) {
       window.location.replace("login.html");
     }
 
-    // Page logic
-    import { api } from "../assets/js/api.js";
+    // Button loader helpers
+    function withLoading(button, fn) {
+      return async (...args) => {
+        button.classList.add("loading");
+        try {
+          return await fn(...args);
+        } finally {
+          button.classList.remove("loading");
+        }
+      };
+    }
 
     const createForm = document.getElementById("createForm");
+    const createBtn = document.getElementById("createBtn");
     const createMsg = document.getElementById("createMsg");
+    const refreshBtn = document.getElementById("refreshBtn");
     const allRecordsEl = document.getElementById("allRecords");
+    const updBtn = document.getElementById("updBtn");
     const updMsg = document.getElementById("updMsg");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-    createForm.addEventListener("submit", async (e) => {
+    // Logout
+    logoutBtn.addEventListener("click", withLoading(logoutBtn, async () => {
+      localStorage.removeItem("HR_AUTH"); // adjust if different key
+      window.location.replace("login.html");
+    }));
+
+    // Create record
+    createForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const payload = {
         firstName: document.getElementById("firstName").value.trim(),
         lastName: document.getElementById("lastName").value.trim(),
         email: document.getElementById("email").value.trim(),
       };
-      try {
-        await api.hrCreateOnboard(payload);
-        createMsg.textContent = "Created successfully";
-        createMsg.className = "alert alert--success";
-      } catch (err) {
-        createMsg.textContent = `Error: ${err.message}`;
-        createMsg.className = "alert alert--error";
-      }
+      withLoading(createBtn, async () => {
+        try {
+          await api.hrCreateOnboard(payload);
+          createMsg.textContent = "Created successfully";
+          createMsg.className = "alert alert--success";
+        } catch (err) {
+          createMsg.textContent = `Error: ${err.message}`;
+          createMsg.className = "alert alert--error";
+        }
+      })();
     });
 
+    // Render records
     function renderRecords(records = []) {
       if (!Array.isArray(records) || records.length === 0) {
         allRecordsEl.innerHTML = "<p>No records found.</p>";
         return;
       }
-
       const container = document.createElement("div");
       container.className = "records";
-
       for (const r of records) {
         const card = document.createElement("div");
         card.className = "record-card";
@@ -313,25 +372,23 @@
 
         container.appendChild(card);
       }
-
       allRecordsEl.innerHTML = "";
       allRecordsEl.appendChild(container);
     }
 
-    document.getElementById("refreshBtn").addEventListener("click", async () => {
+    // Refresh records
+    refreshBtn.addEventListener("click", withLoading(refreshBtn, async () => {
       allRecordsEl.textContent = "Loading…";
       try {
         const res = await api.hrGetAll();
-        // Optional: sort or limit results
-        // const sorted = res.slice().sort((a, b) => (a.onboardingId > b.onboardingId ? -1 : 1));
-        // renderRecords(sorted.slice(0, 50));
         renderRecords(res);
       } catch (err) {
         allRecordsEl.textContent = `Error: ${err.message}`;
       }
-    });
+    }));
 
-    document.getElementById("updBtn").addEventListener("click", async () => {
+    // Update status
+    updBtn.addEventListener("click", withLoading(updBtn, async () => {
       const id = document.getElementById("updId").value.trim();
       const status = document.getElementById("updStatus").value.trim();
       if (!id || !status) {
@@ -347,7 +404,7 @@
         updMsg.textContent = `Error: ${err.message}`;
         updMsg.className = "alert alert--error";
       }
-    });
+    }));
   </script>
 </body>
 </html>
